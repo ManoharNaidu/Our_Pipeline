@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "our-pipeline"
+version = "0.1.0"
+description = "A short, readable implementation of dual-granularity prompts for fraud detection with graph-enhanced LLMs."
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.12"
+dependencies = [
+    "torch==2.14.1", "transformers==5.19.0", "peft==0.21.2", "numpy==2.5.4", "scipy==1.18.1", "scikit-learn==1.9.1",
+    "accelerate>=0.34", "sentencepiece>=0.2", "protobuf", "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"our_pipeline.text" = ["templates/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 120
+src = ["src", "scripts", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501", "B905"]

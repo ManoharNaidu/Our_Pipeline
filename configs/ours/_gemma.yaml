@@ -1,0 +1,11 @@
+# Change from the DGP recipe: Gemma-2-9B as both summary writer and LoRA classifier. Remove this line from an arm to switch it off.
+# Gemma-2 needs eager attention.
+summarizer:
+  model_id: google/gemma-2-9b-it
+  revision: 11c9b309abf73637e4b6f9a3fa1e92e615547819
+  attn_implementation: eager
+  max_batch_tokens_sq: 67108864   # 16 x 2048^2: closes a batch before eager attention runs out of memory
+classifier:
+  model_id: google/gemma-2-9b-it
+  revision: 11c9b309abf73637e4b6f9a3fa1e92e615547819
+  attn_implementation: eager

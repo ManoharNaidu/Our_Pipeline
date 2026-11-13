@@ -1,0 +1,2 @@
+# Change from the DGP recipe: metapaths and diffusion up to one hop. The K = 2 arms leave this out.
+method: {K: 1}

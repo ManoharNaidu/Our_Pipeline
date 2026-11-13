@@ -1,0 +1,5 @@
+# Change from the DGP recipe: keep the epoch with the best validation AUROC, patience 3. loss_es2 and auroc_all are tracked on the same
+# run for comparison, which requires all 10 epochs.
+training:
+  selection_rules: [auroc_es3, loss_es2, auroc_all]
+  primary_rule: auroc_es3

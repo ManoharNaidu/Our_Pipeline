@@ -1,0 +1,9 @@
+# Not in the paper. No numeric attributes.
+defaults: [../base.yaml]
+method: {numeric_summary: false}
+dataset:
+  name: instagram
+  relations: [UFU]
+  question: Is this a commercial user?
+  expected: {nodes: 7946, edges: 76058, frauds: 722}
+  reference: {source: benchmark, macro_f1: 53.41, auroc: 59.01}   # benchmark = FLAG, mean of 7 GNN backbones

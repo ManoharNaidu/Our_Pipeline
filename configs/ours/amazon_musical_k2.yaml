@@ -1,0 +1,2 @@
+# Our pipeline on amazon_musical, K = 2.
+defaults: [../datasets/amazon_musical.yaml, _gemma.yaml, _auroc_rule.yaml]

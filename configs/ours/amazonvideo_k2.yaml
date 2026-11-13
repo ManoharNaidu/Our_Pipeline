@@ -1,0 +1,2 @@
+# Our pipeline on amazonvideo, K = 2.
+defaults: [../datasets/amazonvideo.yaml, _gemma.yaml, _auroc_rule.yaml]
