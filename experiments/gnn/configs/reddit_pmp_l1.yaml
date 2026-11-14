@@ -1,0 +1,6 @@
+# Exp1 on reddit: Ours K=1 with exactly one change, neighbours ranked by cosine on PMP-L1 embeddings instead of
+# diffusion (decisions log H1-H3, D1-D11, G1). Everything else is inherited from configs/ours/reddit_k1.yaml.
+defaults: [../../../configs/ours/reddit_k1.yaml, _exp1.yaml]
+method:
+  selection: embedding_cosine
+  selection_embeddings: experiments/gnn/runs/embeddings/reddit_pmp_l1/embeddings.npy

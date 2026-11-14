@@ -1,0 +1,4 @@
+# Exp1 overlay: results and queue state of this experiment live under experiments/gnn/runs/. The pipeline cache stays
+# shared (runs/cache), so node summaries and DeBERTa embeddings are reused; trims and metapath summaries get new keys.
+paths:
+  results: experiments/gnn/runs/results

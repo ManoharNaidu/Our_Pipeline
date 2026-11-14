@@ -78,12 +78,30 @@ def top_m(candidates: np.ndarray, embeddings: np.ndarray, target: int, M: int) -
     return candidates[np.lexsort((candidates, distances))[:M]]
 
 
+def top_m_cosine(candidates: np.ndarray, embeddings: np.ndarray, target: int, M: int) -> np.ndarray:
+    """The M candidates most cosine-similar to the target, most similar first. Ties break by node id.
+
+    A zero vector has similarity 0 to everything, never NaN.
+    """
+    vectors = np.asarray(embeddings[candidates], dtype=np.float64)
+    anchor = np.asarray(embeddings[target], dtype=np.float64)
+    norms = np.maximum(np.linalg.norm(vectors, axis=1), 1e-12) * max(float(np.linalg.norm(anchor)), 1e-12)
+    similarity = (vectors @ anchor) / norms
+    return candidates[np.lexsort((candidates, -similarity))[:M]]
+
+
 def trim_metapath(relations: Relations, path: Metapath, features: np.ndarray, targets: np.ndarray,
-                  K: int, M: int) -> dict[int, np.ndarray]:
-    """Trimmed neighbours of each target along one metapath."""
+                  K: int, M: int, *, node_embeddings: np.ndarray | None = None) -> dict[int, np.ndarray]:
+    """Trimmed neighbours of each target along one metapath.
+
+    With `node_embeddings`, diffusion is skipped and neighbours are ranked by cosine similarity on those embeddings.
+    """
     targets = np.asarray(targets, dtype=np.int64)
-    embeddings = diffused_embeddings(relations, path, features, K)
     neighbours = metapath_neighbours(relations, path, targets)
+    if node_embeddings is not None:
+        return {int(v): top_m_cosine(found, node_embeddings, int(v), M) if len(found) else found
+                for v, found in zip(targets, neighbours)}
+    embeddings = diffused_embeddings(relations, path, features, K)
     return {int(v): top_m(found, embeddings, int(v), M) if len(found) else found
             for v, found in zip(targets, neighbours)}
 

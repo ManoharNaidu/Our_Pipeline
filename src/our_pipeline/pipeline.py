@@ -70,13 +70,34 @@ def _diffusion_features(graph: Graph, cfg: dict, device: str) -> np.ndarray:
     return np.concatenate([np.asarray(embeddings, dtype=np.float64), np.asarray(graph.numeric, dtype=np.float64)], axis=1)
 
 
+SELECTIONS = ("diffusion", "embedding_cosine")
+
+
+def _selection_embeddings(graph: Graph, path: str | Path) -> tuple[np.ndarray, str]:
+    """Precomputed per-node embeddings for cosine selection, checked, and the hash of their file."""
+    path = Path(path)
+    embeddings = np.load(path)
+    if embeddings.ndim != 2 or embeddings.shape[0] != graph.num_nodes:
+        raise ValueError(f"selection embeddings must have shape ({graph.num_nodes}, d), got {embeddings.shape}")
+    if not np.isfinite(embeddings).all():
+        raise ValueError("selection embeddings contain non-finite values")
+    return embeddings, hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+
+
 def trims_for(graph: Graph, split: Split, cfg: dict, device: str, log) -> tuple[dict[str, dict], Path]:
     """Trimmed neighbours per metapath, and the cache folder that names them."""
     method = cfg["method"]
+    selection = method.get("selection", "diffusion")
+    if selection not in SELECTIONS:
+        raise ValueError(f"method.selection must be one of {SELECTIONS}, got {selection!r}")
     targets = split.targets()
     meta = {"dataset": graph.name, "split_seed": split.seed, "K": method["K"], "M": method["M"],
             "targets": hashlib.sha1(np.sort(targets).astype(np.int64).tobytes()).hexdigest()[:16],
             "embedder": cfg["embedder"].get("model_id", "hashing")}
+    node_embeddings = None
+    if selection == "embedding_cosine":       # diffusion keys stay untouched, so existing caches remain valid
+        node_embeddings, sha = _selection_embeddings(graph, method["selection_embeddings"])
+        meta.update({"selection": selection, "selection_embeddings_sha": sha})
     directory = artifact_dir(cfg["paths"]["cache"], "trims", meta)
     trims, features = {}, None
     for path in enumerate_metapaths(cfg["dataset"]["relations"], method["K"]):
@@ -84,9 +105,10 @@ def trims_for(graph: Graph, split: Split, cfg: dict, device: str, log) -> tuple[
         file = directory / f"{name}.npz"
         if not file.exists():
             log(f"trimming {name}")
-            if features is None:
+            if features is None and node_embeddings is None:
                 features = _diffusion_features(graph, cfg, device)
-            save_trim(file, trim_metapath(graph.relations, path, features, targets, method["K"], method["M"]))
+            save_trim(file, trim_metapath(graph.relations, path, features, targets, method["K"], method["M"],
+                                          node_embeddings=node_embeddings))
         trims[name] = load_trim(file)
     return trims, directory
 

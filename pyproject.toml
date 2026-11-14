@@ -24,7 +24,7 @@ where = ["src"]
 "our_pipeline.text" = ["templates/*"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "experiments"]
 pythonpath = ["src"]
 
 [tool.ruff]
