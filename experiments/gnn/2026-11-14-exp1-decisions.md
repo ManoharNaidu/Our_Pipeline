@@ -11,6 +11,8 @@ writer and classifier, `auroc_es3` epoch rule, seeds 0-4, split seed 0).
 | S2 | GNN: PMP only. BWGNN deferred. If added later, its "layers" setting is the wavelet order C in {1, 2}, since BWGNN has no stacked layers. | User | Scope. |
 | S3 | GNN layers k in {1, 2} = PMP `n_layer`. Independent of metapath K, which stays 1. | User | Task spec. |
 | S4 | Experiment code, configs, docs and outputs live in `experiments/gnn/`; the core package only gains a generic hook (`method.selection: embedding_cosine`). | User / Claude | One folder per experiment; core stays GNN-agnostic. |
+| S5 | Reddit skipped: no Reddit pipeline job is run. Existing Reddit embeddings, diagnostics and config are kept. Scope is Instagram, PMP-L1. Amazon Instruments and BWGNN stay deferred. | User, 2026-11-14 | ~9.4 GPU-h; only 12.1% of Reddit targets have more than 4 candidate neighbours; Reddit PMP-L1's best GNN epoch is 0 (G5). See also G6. |
+| S6 | Original DGP Instagram runs: the 5 DGP-Reproduce runs (commit `df393c4`, `repro_instagram_seed*_9dcd4dad8e`) copied to `runs/dgp_reference/`; recipe identical to `configs/datasets/instagram.yaml` (K 2, M 4, Qwen3-8B, LoRA 8, lr 1e-4, patience 2). | User, 2026-11-14 | Made by other code, so no run of this repo's config exists. |
 
 ## Pipeline hook
 
@@ -73,5 +75,6 @@ The full list of 12 implementation deviations is in the docstring of `experiment
 |---|---|---|---|
 | E3 | Instagram comparison: "Ours + PMP-L1 cosine" against "Ours K=1", Holm over the three metrics of the one dataset run (`--holm-family all`). Primary metric AUROC: Δ −0.29, 95% CI [−1.49, +0.90], Holm 0.89. Macro-F1 Δ −1.96 (Holm 0.033). | Task spec (E1) | With Reddit not run, the family is this dataset's three tests. |
 | G6 | Reddit and Amazon Instruments full runs not made; experiment closed after Instagram. | User, 2026-11-14 ("proceed phase E" after the recommendation to skip Reddit) | No AUROC gain on Instagram, the dataset with the most headroom (51.8%); Reddit has 12.1% headroom and a best GNN epoch of 0 (G5), for ~9.4 GPU-h. |
+| E4 | `runs/compare/significance.json` holds only the 3 comparisons against Ours K=1 (main Holm family: Macro-F1, AUROC, AUPRC on Instagram), converted from `scripts/compare_arms.py` JSON output without recomputing anything. No significance test against the original DGP; the dashboard shows only the mean difference for that row. | User, 2026-11-14 | User: "do not compare with original DGP, leave it". |
 
 Report: [`2026-11-14-exp1-gnn-selection-report.md`](2026-11-14-exp1-gnn-selection-report.md).

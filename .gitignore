@@ -8,3 +8,16 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .claude/
+
+# Python environments: rebuild with `uv venv` + `uv pip install -e .`
+.venv*/
+# Hugging Face model caches (models download at pinned revisions)
+.hf_home*/
+# Model weights and arrays (normally under runs/ already)
+*.safetensors
+*.npy
+# Archives, checksums, backups, editor autosaves
+*.tar.gz
+*.sha256
+*.bak
+.ipynb_checkpoints/
