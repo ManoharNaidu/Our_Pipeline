@@ -1,0 +1,6 @@
+# Exp1 on instagram: Ours K=1 with exactly one change, neighbours ranked by cosine on BWGNN (order C = 1) embeddings
+# instead of diffusion (decisions log H1-H3, BW1-BW6). Identical to instagram_pmp_l1.yaml apart from the embedding file.
+defaults: [../../../configs/ours/instagram_k1.yaml, _exp1.yaml]
+method:
+  selection: embedding_cosine
+  selection_embeddings: experiments/gnn/runs/embeddings/instagram_bwgnn_c1/embeddings.npy

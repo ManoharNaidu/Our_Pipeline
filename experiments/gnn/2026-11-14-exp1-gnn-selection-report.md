@@ -7,7 +7,8 @@ Every decision referred to by ID (S, H, D, E, G, O) is in [`2026-11-14-exp1-deci
 
 Replacing diffusion ranking with cosine similarity on PMP-L1 embeddings (metapath K = 1, M = 4) **does not improve
 Ours on Instagram**. AUROC, the primary metric, changes by −0.29 points (95% CI [−1.49, +0.90], Holm p = 0.89).
-Macro-F1 is worse on all five seeds, by −1.96 points (95% CI [−2.85, −1.04], Holm p = 0.033). AUPRC changes by −0.53
+Macro-F1 is worse on all five seeds, by −1.96 points (95% CI [−2.85, −1.04], raw p = 0.011, Holm p = 0.065 over the 6 tests of E5; 0.033 over this
+comparison's 3 tests before BWGNN was added). AUPRC changes by −0.53
 (n.s.). Prompt length is unchanged (70.6 vs 70.5 tokens). Following decision G3 and the user's go-ahead for Phase E,
 Reddit and Amazon Instruments were not run (G6).
 
@@ -68,11 +69,12 @@ over the three metrics; E1, E2). Files: `runs/eval/2026-11-14-instagram-pmp-l1-v
 
 | Metric | Δ (seeds better) | 95% CI | p | Holm |
 |---|---|---|---|---|
-| Macro-F1 | −1.96 (0/5) | [−2.85, −1.04] | 0.0109 | **0.0326** |
-| AUROC | −0.29 (3/5) | [−1.49, +0.90] | 0.7943 | 0.8891 |
-| AUPRC | −0.53 (1/5) | [−1.38, +0.31] | 0.4445 | 0.8891 |
+| Macro-F1 | −1.96 (0/5) | [−2.85, −1.04] | 0.0109 | **0.0326** (6 tests: 0.0651) |
+| AUROC | −0.29 (3/5) | [−1.49, +0.90] | 0.7943 | 0.8891 (6 tests: 1.0000) |
+| AUPRC | −0.53 (1/5) | [−1.38, +0.31] | 0.4445 | 0.8891 (6 tests: 1.0000) |
 
-Mean ± population std over seeds. Holm over this comparison's three tests (one dataset); bold: < 0.05.
+Mean ± population std over seeds. Holm over this comparison's three tests (one dataset); bold: < 0.05. In parentheses: Holm over the 6 tests
+against Ours K=1 once BWGNN-C1 was added (E5), which `runs/compare/significance.json` and the dashboard now use.
 
 ### Per seed
 

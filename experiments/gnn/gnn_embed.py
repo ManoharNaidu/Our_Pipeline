@@ -472,3 +472,8 @@ def select_config(results: dict[str, TrainResult], order: list[str]) -> str:
         if results[name].val_auroc > results[best].val_auroc:
             best = name
     return best
+
+
+TRAIN = train_pmp
+SELECTION = "highest validation AUROC; ties go to the lower grid index"
+EMBEDDING_WHAT = "last hidden representation before dropout + Conv1d head"

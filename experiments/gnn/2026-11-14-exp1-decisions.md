@@ -78,3 +78,23 @@ The full list of 12 implementation deviations is in the docstring of `experiment
 | E4 | `runs/compare/significance.json` holds only the 3 comparisons against Ours K=1 (main Holm family: Macro-F1, AUROC, AUPRC on Instagram), converted from `scripts/compare_arms.py` JSON output without recomputing anything. No significance test against the original DGP; the dashboard shows only the mean difference for that row. | User, 2026-11-14 | User: "do not compare with original DGP, leave it". |
 
 Report: [`2026-11-14-exp1-gnn-selection-report.md`](2026-11-14-exp1-gnn-selection-report.md).
+
+## BWGNN
+
+Source: github.com/squareRoot3/Rethinking-Anomaly-Detection, commit `de0631f039bbd19c1890b483cc01f1007f596af7` (ICML 2022;
+no licence file; reimplemented, not copied). Code: `bwgnn_embed.py`, tests `tests/test_bwgnn.py` (16).
+
+| ID | Decision | Decided by | Reason |
+|---|---|---|---|
+| BW1 | Homogeneous BWGNN with the official settings: hid 64, Adam lr 0.01, 100 epochs, full batch, cross-entropy weighted by #benign / #fraud train labels, no dropout, raw features, merged graph plus one self-loop per node. Embedding = ReLU(linear3(...)), 64 dims; score = softmax[:, 1]. Seven deviations (plain PyTorch, shared L^k, repo split, kept state, seed 0 on CPU, closed-form wavelet coefficients, merge mode only) are listed in the `bwgnn_embed.py` docstring. | Claude, plan approved by the user 2026-11-14 | Faithful to the official `--homo 1` model; Instagram has one relation, so homo and hetero coincide. |
+| BW2 | Epoch rule: official BWGNN rule, first epoch with the highest validation Macro-F1 over thresholds 0.05..0.95, scored on the logits before that epoch's step; the state that produced them is kept. | User, 2026-11-14 ("use official for both") | Faithfulness, as for PMP. |
+| BW3 | PMP checked against its official code (`main.py`: `monitor: auc_gnn`, `eval_interval: 1`, `best_metric <= now_metric`, patience, best checkpoint reloaded; `convert_probs`: sigmoid, column 1). The PMP runs already used this rule (D9, D11), so no PMP re-run. | User asked for the check, 2026-11-14 | Same rule as official. |
+| BW4 | Variants C = 1 and C = 2 (wavelet order, S2). C = 1 chosen on GNN validation AUROC, 57.98 against 55.46 (rule of G1); official validation Macro-F1 56.58 against 54.26; best epochs 26 and 27. | Task rule | Validation only. |
+| BW5 | Observations, not used for any choice: BWGNN-C1's validation AUROC (57.98) is below PMP-L1's (62.86), and below its own best epoch on AUROC (61.27 at epoch 7). Its neighbour sets differ from diffusion (Jaccard 0.302) and from PMP-L1 (0.288); validation label agreement 89.4 (diffusion 90.9, random 91.8); fraud targets 19.0 (diffusion 21.1; only 28 targets). | Recorded | `runs/diagnostics/bwgnn/`. |
+| BW6 | Run config `configs/instagram_bwgnn_c1.yaml` (hash `771aa150b9`) differs from `instagram_pmp_l1.yaml` only in `method.selection_embeddings`. Estimated run: 37 new node summaries, 6,522 metapath summaries, prompts, 5 seeds, about 1.9 GPU-h (as the PMP run). Launch waits for the user. | Claude | Same one-change design as G4. |
+| BW7 | Run finished: 5/5 seeds (hash `771aa150b9`), 05:17–07:05 UTC, all jobs rc 0. Test mean ± std: Macro-F1 51.88 ± 2.66, AUROC 59.04 ± 0.68, AUPRC 14.01 ± 0.88. | Recorded | `runs/results/raw/instagram_seed*_771aa150b9/`. |
+| BW8 | Result against Ours K=1 (Holm over 6 tests, E5): AUROC Δ +0.18, 95% CI [−1.05, +1.44], Holm 1.0; Macro-F1 Δ −1.98 (p 0.29, Holm 1.0); AUPRC Δ −0.17 (Holm 1.0). BWGNN-C1 does not improve Ours on Instagram. Seeds 1 and 4 chose the lowest validation threshold (0.05) and account for the Macro-F1 gap (observation only). | Task spec (E1) | `runs/compare/2026-11-14-compare-arms-instagram-pmp-bwgnn.{md,json}`. |
+| BW9 | No direct BWGNN-C1 vs PMP-L1 test (not asked for). | Claude | Offered to the user; not part of the E1 family. |
+| E5 | Main Holm family widened from 3 to 6 tests (PMP-L1 and BWGNN-C1, 3 metrics each, against Ours K=1 on Instagram), as E1 requires. `significance.json` rewritten from the new compare_arms output (old file kept as `runs/compare/2026-11-14-significance.json.bak`). PMP-L1 Macro-F1 Holm moves from 0.033 to 0.065, so E3's "significantly worse" no longer holds; all other Holm values are 1.0. E3 is kept as the record of the 3-test analysis. | User approved, 2026-11-14 ("approve") | E1: all variant × dataset comparisons against Ours K=1 in one family. |
+
+Report: [`2026-11-14-exp1-bwgnn-report.md`](2026-11-14-exp1-bwgnn-report.md).

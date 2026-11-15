@@ -1,4 +1,4 @@
-"""Train PMP over the hyperparameter grid, select on validation AUROC, and write all-node embeddings.
+"""Train PMP or BWGNN over its hyperparameter grid, select on validation AUROC, and write all-node embeddings.
 
     python experiments/gnn/train_gnn.py --config configs/ours/instagram_k1.yaml --model pmp --layers 1 \
         --out experiments/gnn/runs/embeddings/instagram_pmp_l1 [--device cpu] [--grid A1,A2] [--max-epochs N]
@@ -22,7 +22,10 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import bwgnn_embed as B  # noqa: E402
 import gnn_embed as G  # noqa: E402
+
+MODELS = {"pmp": G, "bwgnn": B}   # each exposes GRID, TRAIN, SELECTION and EMBEDDING_WHAT
 
 
 def sha256_16(path: Path) -> str:
@@ -59,12 +62,13 @@ def versions() -> dict:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--config", required=True)
-    parser.add_argument("--model", default="pmp", choices=["pmp"])
-    parser.add_argument("--layers", type=int, required=True, choices=[1, 2])
+    parser.add_argument("--model", default="pmp", choices=sorted(MODELS))
+    parser.add_argument("--layers", type=int, required=True, choices=[1, 2],
+                        help="PMP: number of layers; BWGNN: beta-wavelet order C")
     parser.add_argument("--out", required=True)
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--relation-mode", default="merge", choices=["merge", "cat"])
-    parser.add_argument("--grid", default=",".join(G.GRID), help="comma-separated subset of " + ",".join(G.GRID))
+    parser.add_argument("--grid", default=None, help="comma-separated subset of the model's grid (default: all)")
     parser.add_argument("--max-epochs", type=int, default=None, help="cap on epochs (smoke tests only)")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--force", action="store_true", help="rerun even if a matching manifest exists")
@@ -75,10 +79,11 @@ def main(argv: list[str] | None = None) -> int:
     from our_pipeline.graph.data import load_graph, load_split
     from our_pipeline.runs import git_commit
 
-    grid_names = [g.strip() for g in args.grid.split(",") if g.strip()]
-    unknown = set(grid_names) - set(G.GRID)
+    M = MODELS[args.model]
+    grid_names = [g.strip() for g in (args.grid or ",".join(M.GRID)).split(",") if g.strip()]
+    unknown = set(grid_names) - set(M.GRID)
     if unknown or not grid_names:
-        parser.error(f"unknown grid configs {sorted(unknown)}; choose from {list(G.GRID)}")
+        parser.error(f"unknown grid configs {sorted(unknown)}; choose from {list(M.GRID)}")
 
     cfg = load_config(args.config)
     data_dir = Path(cfg["paths"]["data"]) / cfg["dataset"]["name"]
@@ -88,7 +93,7 @@ def main(argv: list[str] | None = None) -> int:
     s_hash = split_hash(split)
 
     settings = {"dataset": graph.name, "model": args.model, "layers": args.layers, "seed": args.seed,
-                "relation_mode": args.relation_mode, "grid": {name: G.GRID[name] for name in grid_names},
+                "relation_mode": args.relation_mode, "grid": {name: M.GRID[name] for name in grid_names},
                 "max_epochs": args.max_epochs, "split_sha1": s_hash, "embedding_sha256_16": emb_sha,
                 "num_nodes": graph.num_nodes}
     out = Path(args.out)
@@ -105,11 +110,11 @@ def main(argv: list[str] | None = None) -> int:
     results, rows = {}, []
     for name in grid_names:
         t0 = time.time()
-        res = G.train_pmp(features, graph.relations, nodes, G.GRID[name], args.layers, args.relation_mode,
-                          seed=args.seed, device=args.device, early_stopping=True, max_epochs=args.max_epochs)
+        res = M.TRAIN(features, graph.relations, nodes, M.GRID[name], args.layers, args.relation_mode,
+                      seed=args.seed, device=args.device, early_stopping=True, max_epochs=args.max_epochs)
         threshold = select_threshold(nodes.val_y, res.val_scores)
         results[name] = res
-        rows.append({"name": name, "hyperparameters": G.GRID[name], "val_auroc": 100 * res.val_auroc,
+        rows.append({"name": name, "hyperparameters": M.GRID[name], "val_auroc": 100 * res.val_auroc,
                      "val_macro_f1": macro_f1_at(nodes.val_y, res.val_scores, threshold), "val_threshold": threshold,
                      "best_epoch_0based": res.best_epoch, "epochs_run": res.epochs_run,
                      "val_auroc_curve": [round(100 * v, 4) for v in res.val_auroc_curve],
@@ -125,10 +130,10 @@ def main(argv: list[str] | None = None) -> int:
         "settings": settings,
         "dataset": graph.name, "model": args.model, "layers": args.layers, "seed": args.seed,
         "relation_mode": args.relation_mode, "device": args.device, "config_file": args.config,
-        "selection": "highest validation AUROC; ties go to the lower grid index",
+        "selection": M.SELECTION,
         "chosen": chosen, "chosen_config": next(r for r in rows if r["name"] == chosen), "grid": rows,
         "embedding_output": {"path": str(emb_out), "shape": list(results[chosen].embeddings.shape),
-                             "dtype": "float32", "what": "last hidden representation before dropout + Conv1d head"},
+                             "dtype": "float32", "what": M.EMBEDDING_WHAT},
         "split": {"sha1_sorted_ids": s_hash, "seed": split.seed, "sizes": split.sizes()},
         "label_counts": label_counts(graph.labels, split),
         "features": {"source": "DeBERTa text embeddings", "model_id": cfg["embedder"].get("model_id"),

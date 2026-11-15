@@ -1,0 +1,6 @@
+# Exp1 on reddit: Ours K=1 with exactly one change, neighbours ranked by cosine on BWGNN (order C = 1) embeddings
+# instead of diffusion (decisions log H1-H3, BW1-BW6, BW10). Identical to reddit_pmp_l1.yaml apart from the embedding file.
+defaults: [../../../configs/ours/reddit_k1.yaml, _exp1.yaml]
+method:
+  selection: embedding_cosine
+  selection_embeddings: experiments/gnn/runs/embeddings/reddit_bwgnn_c1/embeddings.npy

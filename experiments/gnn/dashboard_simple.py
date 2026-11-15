@@ -48,6 +48,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import dashboard as D  # the existing dashboard in the same folder; only read, never edited
+import dashboard_neighbours as NB  # neighbour-overlap card (MD vs PMP vs BWGNN), from compare_neighbours.py
 
 METRICS = (("macro_f1", "Macro-F1"), ("auroc", "AUROC"), ("auprc", "AUPRC"))
 PRIMARY = "auroc"
@@ -384,6 +385,7 @@ def render_main(st: dict) -> str:
                    f'</p>{body}{per_seed_table(b)}<p class="note">Bold = best in column. p-values are '
                    "Holm-corrected, from scripts/compare_arms.py. Differences use the same seeds on both sides.</p>"
                    "</section>")
+    out.append(NB.card(D.gnn_dir() / "runs" / "compare"))
     for ds in st["skipped"]:
         out.append(f'<section class="card"><p class="label">{e(ds.capitalize())}</p>'
                    '<p class="muted">Skipped by decision. Not run.</p></section>')
