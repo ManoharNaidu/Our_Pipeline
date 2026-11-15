@@ -20,4 +20,6 @@ __pycache__/
 *.tar.gz
 *.sha256
 *.bak
+# setup.sh resume state (which step failed last)
+.setup_state
 .ipynb_checkpoints/
