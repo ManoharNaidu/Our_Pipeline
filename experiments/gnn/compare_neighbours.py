@@ -11,12 +11,18 @@ way the pipeline names it, and its metadata.json is checked), so this compares e
 Nothing is written to the cache.
 
 Labels: train and validation labels only. Test labels are never read; test and unlabelled neighbours count as
-"unknown". Outputs <out>/2026-11-14-neighbour-comparison-<dataset>.{json,md}; the simple dashboard reads the JSON.
+"unknown". Outputs <out>/<date>-neighbour-comparison-<dataset>.{json,md} (date: --date, default today UTC); the
+simple dashboard reads the latest JSON per dataset.
+
+All per-method statistics (distinct neighbours, degree, label shares, agreement) are over the same targets: those with
+more than M candidates, the only ones where the methods can differ. MD (diffusion) is the pipeline's own Ours K=1
+selection; "Random M" and "All candidates" are reference rows over the same targets.
 """
 
 from __future__ import annotations
 
 import argparse
+import datetime
 import hashlib
 import itertools
 import json
@@ -98,15 +104,19 @@ def compare(dataset: str, methods: list[tuple[str, str]]) -> dict:
             assert all(sets[n][v] <= set(cand[v].tolist()) for v in room), f"{n}: neighbour outside candidates"
         degree = np.asarray(sum((r != 0).astype(np.int64) for r in graph.relations.values()).sum(1)).ravel()
 
-        per_method = {}
-        for n in names:
-            chosen = [u for v in room for u in sets[n][v]]
+        rng = np.random.default_rng(0)
+        rand = {v: (rng.choice(cand[v], M, replace=False) if len(cand[v]) > M else cand[v]) for v in cand}
+
+        def stats(picked: dict) -> dict:                           # every row over the same headroom targets
+            chosen = [int(u) for v in room for u in picked[v]]
             usable = [u for u in chosen if known[u]]
-            per_method[n] = {
-                "distinct_neighbours_used": len({u for s in sets[n].values() for u in s}),
-                "mean_neighbour_degree": float(np.mean(degree[chosen])) if chosen else None,
-                "known_label_share": len(usable) / len(chosen) if chosen else None,
-                "fraud_share_of_known": float(np.mean(labels[usable] == 1)) if usable else None}
+            return {"distinct_neighbours_used": len(set(chosen)),
+                    "mean_neighbour_degree": float(np.mean(degree[chosen])) if chosen else None,
+                    "known_label_share": len(usable) / len(chosen) if chosen else None,
+                    "fraud_share_of_known": float(np.mean(labels[usable] == 1)) if usable else None}
+
+        per_method = {n: stats(sets[n]) for n in names}
+        per_method["Random M"] = stats(rand)
         cand_all = [u for v in room for u in cand[v]]
         cand_known = [u for u in cand_all if known[u]]
         per_method["All candidates"] = {
@@ -127,8 +137,6 @@ def compare(dataset: str, methods: list[tuple[str, str]]) -> dict:
         val_room = [v for v in room if v in val]
         groups = {"all": np.array(val_room), "fraud": np.array([v for v in val_room if labels[v] == 1]),
                   "benign": np.array([v for v in val_room if labels[v] == 0])}
-        rng = np.random.default_rng(0)
-        rand = {v: (rng.choice(cand[v], M, replace=False) if len(cand[v]) > M else cand[v]) for v in cand}
         agree = {n: {g: agreement({v: np.array(sorted(s)) for v, s in sets[n].items()}, t, known, labels)
                      for g, t in groups.items()} for n in names}
         agree["Random M"] = {g: agreement(rand, t, known, labels) for g, t in groups.items()}
@@ -147,7 +155,8 @@ def compare(dataset: str, methods: list[tuple[str, str]]) -> dict:
             "no_candidate_share": float(np.mean(counts == 0)), "per_method": per_method, "pairs": pairs,
             "all_methods_identical_share": all_same, "mean_picked_by_all": float(np.mean(common)),
             "mean_union_size": float(np.mean(union)), "val_targets_with_headroom": {g: int(len(t)) for g, t in groups.items()},
-            "agreement": agree, "examples": examples}
+            "agreement": agree, "examples": examples,
+            "per_method_scope": "targets with more than M candidates (headroom_targets), for every row"}
     return out
 
 
@@ -176,9 +185,7 @@ def markdown(res: dict) -> str:
                   if a else " | | ")
             lines.append(f"| {n} | {m['distinct_neighbours_used']} | {m['mean_neighbour_degree']:.1f} | "
                          f"{pct(m['known_label_share'])}% | {pct(m['fraud_share_of_known'])}% | {ag} |")
-        a = rec["agreement"]["Random M"]
-        lines += [f"| Random M | | | | | {pct(a['all']['agreement'])} | {pct(a['fraud']['agreement'])} | "
-                  f"{pct(a['benign']['agreement'])} |", ""]
+        lines.append("")
     return "\n".join(lines)
 
 
@@ -187,12 +194,16 @@ def main() -> int:
     ap.add_argument("--dataset", required=True)
     ap.add_argument("--method", action="append", required=True, metavar="NAME=CONFIG")
     ap.add_argument("--out", default="experiments/gnn/runs/compare")
+    ap.add_argument("--date", default=datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d"),
+                    help="date prefix of the output files (default: today, UTC)")
     a = ap.parse_args()
     methods = [tuple(x.rsplit("=", 1)) for x in a.method]   # names may contain "=", paths do not
     res = compare(a.dataset, methods)
     out = ROOT / a.out
     out.mkdir(parents=True, exist_ok=True)
-    stem = out / f"2026-11-14-neighbour-comparison-{a.dataset}"
+    stem = out / f"{a.date}-neighbour-comparison-{a.dataset}"
+    if stem.with_suffix(".json").exists():
+        raise SystemExit(f"{stem}.json exists; pass another --date (files are never overwritten)")
     stem.with_suffix(".json").write_text(json.dumps(res, indent=1), encoding="utf-8")
     stem.with_suffix(".md").write_text(markdown(res), encoding="utf-8")
     print(markdown(res))

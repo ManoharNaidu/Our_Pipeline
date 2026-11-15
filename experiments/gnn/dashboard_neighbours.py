@@ -90,7 +90,9 @@ def card(compare_dir: Path) -> str:
                 f'</tr></thead><tbody>{"".join(ex)}</tbody></table></div>'
                 '<p class="note">Superscript: F fraud, B benign (train/validation labels), ? no train/validation label '
                 "(test or unlabelled nodes are never revealed).</p></details>"
-                f'<p class="note">"Same label" = share of picked neighbours with a train/validation label that match the '
+                '<p class="note">Every row, including MD (Ours K=1, the pipeline\'s own selection), Random M and All '
+                f'candidates, is computed over the same {rec["headroom_targets"]:,} targets with more than {m} candidates. '
+                '"Same label" = share of picked neighbours with a train/validation label that match the '
                 f'validation target\'s label ({vt["all"]} validation targets with headroom; only {vt["fraud"]} fraud, so '
                 f"the fraud column is noisy). Test labels are never read. Source: {e(res['_file'])} "
                 "(experiments/gnn/compare_neighbours.py, from the pipeline's own trims caches).</p></section>")

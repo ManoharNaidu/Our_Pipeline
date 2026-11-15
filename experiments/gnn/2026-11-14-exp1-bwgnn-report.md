@@ -2,6 +2,8 @@
 
 Date: 2026-11-14. Decision IDs refer to [`2026-11-14-exp1-decisions.md`](2026-11-14-exp1-decisions.md) (BWGNN: BW1–BW9;
 statistics: E1, E5). The PMP-L1 arm is reported in [`2026-11-14-exp1-report.md`](2026-11-14-exp1-report.md).
+Holm values here are over 6 tests (E5); Reddit and the final 12-test family (E6) are in
+[`2026-11-15-exp1-reddit-report.md`](2026-11-15-exp1-reddit-report.md).
 
 ## Result
 
